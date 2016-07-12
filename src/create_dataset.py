@@ -10,11 +10,9 @@ from scipy import misc
 
 flags = tf.app.flags.FLAGS
 
-#  flags.DEFINE_string("data_root", "~/documents/datasets/voc",
-#  "directory contains train and test images")
 tf.app.flags.DEFINE_string("data_root",
-                           os.path.expanduser("~") + "/download/VOCdevkit/VOC2012/",
-                           "directory contains train and test images")
+                    os.path.expanduser("~") + "/documents/datasets/voc",
+                    "directory contains train and test images")
 tf.app.flags.DEFINE_string("output_root", "../data/",
                            "directory to store the formatted data")
 tf.app.flags.DEFINE_integer("num_threads", 4,
@@ -33,7 +31,7 @@ def _bytes_feature(value):
     return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
 
 
-def _convert_to_example(image, label):
+def _convert_to_example(image, label=None):
     """Convert the images
 
     Args:
@@ -113,12 +111,13 @@ def create_dataset(img_names, img_root, label_root, output_path):
     def save_to_records(save_path, images, labels):
         # images: float32, labels: int32
         writer = tf.python_io.TFRecordWriter(save_path)
-        for i in xrange(images.shape[0]):
+        for i in xrange(len(images)):
             if labels:
                 example = _convert_to_example(images[i], labels[i])
             else:
                 example = _convert_to_example(images[i])
             writer.write(example.SerializeToString())
+        print("{}: save to {}".format(datetime.now(), save_path))
 
     with open(img_names, 'r') as file:
         names = file.readlines()
@@ -126,6 +125,7 @@ def create_dataset(img_names, img_root, label_root, output_path):
         images = [os.path.join(img_root, name + ".jpg") for name in names]
         num_threads = flags.num_threads
         read_files(images, num_threads)
+        labels = None
         if label_root:
             labels = [os.path.join(label_root, name + ".png")
                       for name in names]
