@@ -25,7 +25,7 @@ class ModelUtilsTestCase(unittest.TestCase):
             init_op = tf.initialize_all_variables()
             self.sess.run(init_op)
 
-            b = np.asarray([i for i in range(0, 10)])
+            b = np.asarray(range(0, 10))
             model_utils.reload_var(a, b)
             self.assertEqual(a.eval().tolist(), b.tolist())
 

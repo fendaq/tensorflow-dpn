@@ -13,7 +13,7 @@ import model_utils
 
 class DeepParseNet(object):
 
-    def __init__(self, path):
+    def __init__(self, path=None):
         if path:
             self.paramters = np.load(path).item()
             print("vgg params load complete")
@@ -67,7 +67,7 @@ class DeepParseNet(object):
         with tf.variable_scope(scope + "_crf"):
             crf = self.dist_layer(conv, m, scope="dist")
             crf = self.conv_layer(crf, nc, nc * k, n, "SAME", False, scope="mu")
-            crf = self.cross_min_pool_layer(crf, k, scope="cross_pool")
+            crf = self.cross_min_pool_layer(crf, nc, k, scope="cross_pool")
             crf = self.combine_layer(conv, crf, scope="combine")
 
         return crf
@@ -107,7 +107,7 @@ class DeepParseNet(object):
 
         Args:
             TODO (meijieru) : check the size of the bottom
-            bottom: Input tensor with size [batch_size, weight, height, channel]
+            bottom: Input tensor with size [batch_size, height, width, channel]
             m: The receptive field of the convolution
 
         Kwargs:
@@ -119,14 +119,15 @@ class DeepParseNet(object):
         """
         pass
 
-    def cross_min_pool_layer(self, bottom, k, scope="cross_pool"):
+    def cross_min_pool_layer(self, bottom, nc, k, scope="cross_pool"):
         """Min pooling within k channel.
 
         Calculating the min value cross the k channel, corresponding to choose
         the minimum \mu_k(i, u, j, v).
 
         Args:
-            bottom: Input tensor with size [batch_size, weight, height, channel]
+            bottom: Input tensor with size [batch_size, height, width, channel]
+            n_in: Channels of `bottom`
             k: Number of components in mixture.
 
         Kwargs:
@@ -136,7 +137,15 @@ class DeepParseNet(object):
             pool: Tensor which is the minimum cross k channel.
 
         """
-        pass
+        with tf.name_scope(scope):
+            mixtures = tf.split(3, nc, bottom)
+            minimum = []
+            for mixture in mixtures:
+                t = tf.reduce_min(mixture, 3, True)
+                minimum.append(t)
+            minimum = tf.concat(3, minimum)
+        return minimum
+
 
     def max_pooling_layer(self, bottom, debug=False, name="max_pooling"):
         pool = tf.nn.max_pool(bottom, [1, 2, 2, 1], [
