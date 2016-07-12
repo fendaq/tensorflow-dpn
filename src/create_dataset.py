@@ -42,14 +42,14 @@ def _convert_to_example(image, label=None):
         example correspond to the origin image label
 
     """
-    if label:
+    if label is None:
         example = tf.train.Example(features=tf.train.Features(feature={
-            'label': _bytes_feature(label),
-            'image_raw': _bytes_feature(image)
+            'image_raw': _bytes_feature(image.tostring())
         }))
     else:
         example = tf.train.Example(features=tf.train.Features(feature={
-            'image_raw': _bytes_feature(image)
+            'label': _bytes_feature(label.tostring()),
+            'image_raw': _bytes_feature(image.tostring())
         }))
     return example
 
@@ -90,7 +90,7 @@ def read_files(paths, num_threads):
 
     coord.join(threads)
     images = reduce(lambda x, y: x + y, images_list, [])
-    print("{}: reading {} images complete".format(datetime.now(), len(paths)))
+    print("{}: reading {} images complete".format(datetime.now(), len(images)))
     sys.stdout.flush()
     return images
 
@@ -124,12 +124,12 @@ def create_dataset(img_names, img_root, label_root, output_path):
         names = [name.strip() for name in names]
         images = [os.path.join(img_root, name + ".jpg") for name in names]
         num_threads = flags.num_threads
-        read_files(images, num_threads)
+        images = read_files(images, num_threads)
         labels = None
         if label_root:
             labels = [os.path.join(label_root, name + ".png")
                       for name in names]
-            read_files(labels, num_threads)
+            labels = read_files(labels, num_threads)
 
     save_to_records(output_path, images, labels)
 
